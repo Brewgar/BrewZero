@@ -1,0 +1,9 @@
+torch import: OK
+CUDA available: True
+GPU: NVIDIA GeForce RTX 5070 Ti
+GPU capability: (12, 0)
+GPU VRAM (MiB): 16302.6
+CUDA matmul sanity: False
+PyTorch: 2.13.0+cu132
+CUDA runtime (torch.version.cuda): 13.2
+CUDNN: 92000

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.cache_wheels/
+
+# Project artifacts
+checkpoints/*
+logs/*
+reports/*.png
+!checkpoints/.gitkeep
+!logs/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store
+stockfish/stockfish-windows-x86-64-avx2.exe

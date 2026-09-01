@@ -1,0 +1,23 @@
+# Gate 7 smoke test (spec Section 8.7 / Gate 7).
+# Tiny model and short games to verify the full pipeline end-to-end.
+project:
+  name: smoke
+  seed: 7
+engine:
+  depth: 8
+  workers: 2
+  hash_mb: 64
+model:
+  channels: 64
+  residual_blocks: 2
+  norm_groups: 8
+selfplay:
+  games_per_iteration: 4
+  max_plies: 60
+  threads: 4
+ppo:
+  epochs: 2
+  batch_size: 128
+train:
+  eval_every: 1
+  eval_games: 4

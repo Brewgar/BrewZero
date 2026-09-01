@@ -1,0 +1,9 @@
+Stockfish search benchmark (depth=16, 96 searches/config)
+ workers   searches/s    ms/search
+       4         50.1         20.0   (concurrency=4)
+       6         56.0         17.9   (concurrency=6)
+       8         56.6         17.7   (concurrency=8)
+      10         62.4         16.0   (concurrency=10)
+      12         56.9         17.6   (concurrency=12)
+      14         66.6         15.0   (concurrency=14)
+      16         63.9         15.6   (concurrency=16)

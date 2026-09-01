@@ -1,0 +1,5 @@
+{
+  "config": "smoke.yaml",
+  "checkpoint": "smoke_prev.pt",
+  "hours": 0.0
+}

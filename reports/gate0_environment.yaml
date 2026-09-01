@@ -1,0 +1,22 @@
+gate: 0
+machine:
+  platform: Windows-11-10.0.26200-SP0
+  cpu: AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD
+python:
+  version: 3.14.6
+  executable: C:\Users\tahae\OneDrive\Desktop\BrewZero\.venv\Scripts\python.exe
+torch:
+  version: 2.13.0+cu132
+  cuda_available: true
+  cuda_runtime: '13.2'
+  cudnn: '92000'
+  gpu: NVIDIA GeForce RTX 5070 Ti
+  gpu_capability:
+  - 12
+  - 0
+  gpu_vram_mib: 16302.6
+stockfish:
+  path: C:\Users\tahae\OneDrive\Desktop\BrewZero\stockfish\stockfish-windows-x86-64-avx2.exe
+  sha256: c86215fa1977d53b82ed854540a4c7b025be4cd042276c85ba3de53fb9118911
+  identity: id name Stockfish 18
+  uci_handshake: readyok observed

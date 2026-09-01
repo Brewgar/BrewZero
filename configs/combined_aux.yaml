@@ -1,0 +1,11 @@
+# Experiment D -- terminal + dense + auxiliary SF-value head (Sec. 72).
+project:
+  name: combined_aux
+
+model:
+  use_sf_head: true
+
+rl:
+  lambda_game: 1.0
+  lambda_stockfish: 0.10
+  stockfish_value_coef: 0.25

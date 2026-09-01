@@ -1,0 +1,7 @@
+# Experiment C -- terminal + Stockfish dense (PRIMARY experiment, Sec. 72).
+project:
+  name: combined
+
+rl:
+  lambda_game: 1.0
+  lambda_stockfish: 0.10

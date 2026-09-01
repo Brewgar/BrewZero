@@ -1,0 +1,9 @@
+# Experiment B -- Stockfish dense reward ONLY (spec Section 72).
+# The PPO training reward excludes the terminal game result entirely;
+# actual game outcomes are still recorded for evaluation.
+project:
+  name: stockfish_dense
+
+rl:
+  lambda_game: 0.0
+  lambda_stockfish: 0.10

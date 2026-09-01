@@ -1,0 +1,7 @@
+Stockfish search benchmark (depth=16, 32 searches/config)
+ workers   searches/s    ms/search
+       2         12.1         82.4
+       4          9.5        105.6
+       8         11.5         86.9
+      12         10.9         92.2
+      16         11.0         91.1

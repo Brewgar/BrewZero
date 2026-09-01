@@ -1,0 +1,11 @@
+# Experiment A -- terminal-only baseline (spec Section 72).
+# No Stockfish dense reward, no engine analysis, no SF auxiliary head.
+# The ONLY intended difference vs experiments B/C/D is the assistance config.
+project:
+  name: terminal_only
+
+engine:
+  enabled: false
+
+rl:
+  lambda_stockfish: 0.0
