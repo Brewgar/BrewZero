@@ -10,7 +10,7 @@ The project is built in Python and uses PyTorch for the neural network and GPU-a
 
 ## Installation
 
-BrewZero uses a Python virtual environment and requires Python 3.14. After creating and activating the environment, install the project dependencies with requirements.txt and install the CUDA-enabled PyTorch build with `pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132`. The Stockfish executable is configured separately rather than being hard-coded into the project. The environment can be checked with `python scripts/gate0_report.py`, and the complete test suite can be run with `pytest tests/ -q`.
+BrewZero uses a Python virtual environment and requires Python 3.14. After creating and activating the environment, install the project dependencies with requirements.txt and install the CUDA-enabled PyTorch build with `pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132`. The Stockfish executable is configured separately rather than being hard-coded into the project. The environment can be checked with `python scripts/gate0_report.py`, and the complete test suite can be run with `pytest tests/ -q`. Everything you need should be included in the github repository, except for the Stockfish 18 Executable file. Download and drop it into /stockfish.
 
 ## Training and Evaluation
 
