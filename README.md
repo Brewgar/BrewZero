@@ -2,11 +2,11 @@
 
 ## Purpose
 
-BrewZero is a self-play reinforcement-learning chess system that trains a neural network to play both sides of a chess game. During training, Stockfish 18 provides auxiliary feedback such as WDL-based evaluation, expected score, and regret, helping the model learn from the quality of its decisions in addition to the final game result. The main purpose of the project is to investigate whether Stockfish-assisted feedback can improve actual playing strength, rather than simply improving internal training metrics. BrewZero is a research prototype, not a replacement for a strong chess engine.
+BrewZero is a self-play reinforcement-learning chess system that trains a neural network to play both sides of a chess game. During training, Stockfish 18 provides auxiliary feedback such as WDL-based evaluation, expected score, and regret, helping the model learn from the quality of its decisions in addition to the final game result. The main purpose of the project is just a proof of concept. BrewZero doesn't aim to become a replacement for a strong chess engine. Its rather just a fun little machine learning project. And yes the Zero in the model's name is very misleading.
 
 ## Technologies
 
-The project is built in Python and uses PyTorch for the neural network and GPU-accelerated training, PPO and GAE for reinforcement learning, python-chess for chess rules and legal move handling, and Stockfish 18 for position evaluation and auxiliary learning signals. The model uses a residual neural-network architecture with separate policy, game-value, training-value, and optional Stockfish-value components. Training, self-play, evaluation, checkpointing, and human play are connected through the same underlying APIs.
+The project is built in Python and uses PyTorch for the neural network and GPU-accelerated training, PPO and GAE for reinforcement learning, python-chess for chess rules and legal move handling, and Stockfish 18 for evaluation and feedback. The model uses a residual neural-network architecture with separate policy, game-value, training-value, and optional Stockfish-value components. Training, self-play, evaluation, checkpointing, and human play are connected through the same underlying APIs.
 
 ## Installation
 
