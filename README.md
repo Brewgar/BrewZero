@@ -2,7 +2,7 @@
 
 ## Purpose
 
-BrewZero is a self-play reinforcement-learning chess system that trains a neural network to play both sides of a chess game. During training, Stockfish 18 provides auxiliary feedback such as WDL-based evaluation, expected score, and regret, helping the model learn from the quality of its decisions in addition to the final game result. The main purpose of the project is just a proof of concept. BrewZero doesn't aim to become a replacement for a strong chess engine. Its rather just a fun little machine learning project. And yes, the Zero in the model's name is very misleading.
+BrewZero is a self-play reinforcement-learning chess system that trains a neural network to play both sides of a chess game. During training, Stockfish 18 provides auxiliary feedback such as WDL-based evaluation, expected score, and regret, helping the model learn from the quality of its decisions in addition to the final game result. The main purpose of the project is just a proof of concept. BrewZero doesn't claim or aim to become a replacement for a strong chess engine. Its rather just a fun little machine learning project. And yes, the Zero in the model's name is very misleading.
 
 ## Technologies
 
