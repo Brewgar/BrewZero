@@ -44,12 +44,15 @@ def main() -> None:
         try:
             while time.time() < deadline:
                 t0 = time.time()
+                perf = cfg.get("performance", {})
                 trajs = play_games(
                     net, cfg["rl"], pool, n_games=cfg["selfplay"]["games_per_iteration"],
                     engine_depth=cfg["engine"]["depth"],
                     max_plies=cfg["selfplay"]["max_plies"],
                     temperature=1.0, device=device, seed=12345,
                     use_sf_head=False, threads=cfg["selfplay"]["threads"],
+                    infer_batch_size=int(perf.get("inference_batch_size", 1)),
+                    infer_max_wait_ms=float(perf.get("max_inference_wait_ms", 0.0)),
                 )
                 plies += sum(t.game_plies for t in trajs)
                 games += len(trajs)

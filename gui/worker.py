@@ -197,7 +197,7 @@ class TrainingWorker:
         payload = load_checkpoint(checkpoint_path, map_location=self.trainer.device)
         from train.checkpoint import check_config_compatibility
         check_config_compatibility(payload, self.cfg)
-        self.trainer.net.load_state_dict(payload["model"])
+        self.trainer.load_net_state(payload["model"])
         self.trainer.iteration = int(payload.get("iteration", 0))
         results = self.trainer.evaluate()
         self._push(EV_EVALUATION, results=results,
@@ -212,7 +212,7 @@ class TrainingWorker:
         payload = load_checkpoint(checkpoint_path, map_location=self.trainer.device)
         from train.checkpoint import check_config_compatibility
         check_config_compatibility(payload, self.cfg)
-        self.trainer.net.load_state_dict(payload["model"])
+        self.trainer.load_net_state(payload["model"])
         self.trainer.net.eval()
         # Run an interactive game using the existing play pipeline.
         # Output goes to the GUI event log so no console is required.

@@ -485,34 +485,40 @@ class ChessRLApp:
         The GUI performs NO rating math of its own: the Relative Elo, its
         uncertainty, games, and score come from the evaluation subsystem
         (evaluation.rating), either live from the Trainer or from the
-        persisted rating history.
+        persisted rating history (which may pass ``results`` empty).
         """
-        if not results:
-            return
-        total_w = sum(r["wins"] for r in results)
-        total_d = sum(r["draws"] for r in results)
-        total_l = sum(r["losses"] for r in results)
-        n = total_w + total_d + total_l
-        score = (total_w + 0.5 * total_d) / n if n else 0.0
+        total_w = draws = losses = 0
+        for r in results:
+            total_w += int(r["wins"])
+            draws += int(r["draws"])
+            losses += int(r["losses"])
+        if not results and rating_summary is not None:
+            total_w = int(rating_summary.get("wins", 0))
+            draws = int(rating_summary.get("draws", 0))
+            losses = int(rating_summary.get("losses", 0))
+        n = total_w + draws + losses
+        score = (total_w + 0.5 * draws) / n if n else 0.0
         self.eval_label.config(
-            text=f"Evaluation: {total_w}W / {total_d}D / {total_l}L  score={score:.3f}  games={n}"
+            text=f"Evaluation: {total_w}W / {draws}D / {losses}L  score={score:.3f}  games={n}"
         )
-        self.stats_vars["win_draw_loss"].set(f"{total_w}W / {total_d}D / {total_l}L")
+        self.stats_vars["win_draw_loss"].set(f"{total_w}W / {draws}D / {losses}L")
         self.stats_vars["eval_score"].set(f"{score:.3f}")
         self.stats_vars["eval_games"].set(str(n))
-        if rating_summary is None:
-            # No evaluator summary available -- do NOT fabricate a rating.
-            self.stats_vars["relative_elo"].set("N/A")
-        elif rating_summary.get("rating") is None:
+        if rating_summary is not None and rating_summary.get("rating") is not None:
+            self.stats_vars["relative_elo"].set(
+                f"{rating_summary['rating']:.0f}"
+                f" ± {rating_summary['rating_uncertainty']:.0f}"
+            )
+        elif rating_summary is not None:
             self.stats_vars["relative_elo"].set("N/A (no matchup qualified)")
         else:
-            txt = (f"{rating_summary['rating']:.0f}"
-                   f" ± {rating_summary['rating_uncertainty']:.0f}")
-            self.stats_vars["relative_elo"].set(txt)
-        self._append_log(
-            f"Evaluation complete: {total_w}W / {total_d}D / {total_l}L "
-            f"(score {score:.3f}, games {n})"
-        )
+            # No evaluator summary available -- do NOT fabricate a rating.
+            self.stats_vars["relative_elo"].set("N/A")
+        if results:
+            self._append_log(
+                f"Evaluation complete: {total_w}W / {draws}D / {losses}L "
+                f"(score {score:.3f}, games {n})"
+            )
 
     def _poll_worker_queue(self):
         self._apply_hw_metrics()

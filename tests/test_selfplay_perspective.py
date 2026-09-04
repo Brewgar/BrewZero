@@ -71,16 +71,16 @@ def _play_scripted(canonical_moves_uci: list[str], scores: dict[str, float],
                    max_plies: int):
     net = ChessNet(channels=8, num_blocks=1, use_sf_head=False)
     queue = list(canonical_moves_uci)
-    original = sp.sample_action
+    original = sp.sample_action_from_probs
 
-    def fake_sample_action(logits, legal_indices, temperature, rng):
+    def fake_sample_action(legal_indices, probs, rng):
         uci = queue.pop(0)
         for a in legal_indices:
             if ActionCodec.decode(a).uci() == uci:
                 return a
         raise AssertionError(f"scripted move {uci} not legal")
 
-    sp.sample_action = fake_sample_action
+    sp.sample_action_from_probs = fake_sample_action
     try:
         pool = StubPool(scores)
         traj = sp.play_single_game(
@@ -89,7 +89,7 @@ def _play_scripted(canonical_moves_uci: list[str], scores: dict[str, float],
             rng=np.random.default_rng(0), use_sf_head=False,
         )
     finally:
-        sp.sample_action = original
+        sp.sample_action_from_probs = original
     return traj, pool
 
 
