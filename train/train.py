@@ -196,6 +196,10 @@ class Trainer:
             payload,
             archive_every=self.cfg["train"]["eval_every"],
             iteration=self.iteration,
+            keep_previous=bool(
+                self.cfg["train"].get("keep_previous_checkpoint", False)
+            ),
+            keep_archives=bool(self.cfg["train"].get("archive_checkpoints", False)),
         )
 
     def _dump_failure(self, exc: Exception, batch: dict) -> None:

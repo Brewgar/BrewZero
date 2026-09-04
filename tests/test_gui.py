@@ -188,3 +188,157 @@ def test_state_win_draw_loss():
     from gui.state import TrainingStatus
     s = TrainingStatus(wins=10, draws=5, losses=2)
     assert s.win_draw_loss() == "10W / 5D / 2L"
+
+
+# ------------------------------------------------------------- play windows
+@pytest.mark.skipif(_skip_display, reason="no display available")
+def test_play_windows_build_and_close(tmp_path):
+    """Both play windows construct against a stubbed net and close cleanly."""
+    from env.chess_env import ChessEnv
+    from gui.play_game import PlayBoardWindow, PlayTextWindow
+
+    class StubNet:
+        use_sf_head = False
+        def eval(self):
+            return self
+
+    payload = {
+        "net": StubNet(),
+        "device": "cpu",
+        "cfg": {"selfplay": {"max_plies": 20}},
+        "human_white": True,
+        "temperature": 0.0,
+        "mode": "gui",
+    }
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        for cls, kwargs in ((PlayBoardWindow, {}), (PlayTextWindow, {})):
+            win = cls(root, dict(payload, **kwargs))
+            root.update_idletasks()
+            root.update()
+            assert win.game is not None
+            win._on_close()
+            root.update_idletasks()
+            root.update()
+    finally:
+        root.destroy()
+
+
+@pytest.mark.skipif(_skip_display, reason="no display available")
+def test_play_text_window_receives_reply():
+    """Playing e4 in the text window triggers an AI reply in plain text."""
+    from gui.play_game import PlayTextWindow
+
+    class StubNet:
+        use_sf_head = False
+        def eval(self):
+            return self
+
+    payload = {
+        "net": StubNet(),
+        "device": "cpu",
+        "cfg": {"selfplay": {"max_plies": 20}},
+        "human_white": True,
+        "temperature": 0.0,
+        "mode": "text",
+    }
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        win = PlayTextWindow(root, payload)
+        # Stub the AI reply so no network is needed.
+        win.game._ai_step = lambda env: (None, "e5")
+        win.entry.insert(0, "e4")
+        win._on_enter()
+        root.update_idletasks()
+        log_text = win.log.get("1.0", "end")
+        assert "You: e4" in log_text
+        assert "AI: e5" in log_text
+        win._on_close()
+    finally:
+        root.destroy()
+
+
+# ----------------------------------------------------- checkpoint loading
+def _make_tiny_checkpoint(tmp_path, name="test_ckpt.pt"):
+    """Build a structurally valid checkpoint payload for the smoke config."""
+    import torch
+    from model.network import ChessNet
+    from train.config import load_config
+
+    repo = Path(__file__).resolve().parent.parent
+    cfg = load_config(repo / "configs" / "smoke.yaml")
+    net = ChessNet(
+        channels=cfg["model"]["channels"],
+        num_blocks=cfg["model"]["residual_blocks"],
+        use_sf_head=cfg["model"]["use_sf_head"],
+        norm_groups=cfg["model"]["norm_groups"],
+    )
+    payload = {
+        "model": net.state_dict(),
+        "optimizer": torch.optim.AdamW(net.parameters()).state_dict(),
+        "iteration": 3,
+        "total_games": 4,
+        "total_plies": 100,
+        "total_engine_evals": 100,
+        "config": cfg,
+        "seeds": {},
+        "meta": {},
+    }
+    p = tmp_path / name
+    torch.save(payload, p)
+    return p
+
+
+def test_resolve_checkpoint_path_bare_name(tmp_path, monkeypatch):
+    from gui import worker as worker_mod
+
+    p = _make_tiny_checkpoint(tmp_path)
+    monkeypatch.setattr(worker_mod, "_CHECKPOINT_DIR", tmp_path)
+    resolved = worker_mod.resolve_checkpoint_path("test_ckpt.pt")
+    assert Path(resolved) == p.resolve()
+
+
+def test_resolve_checkpoint_path_missing_raises(tmp_path, monkeypatch):
+    from gui import worker as worker_mod
+
+    monkeypatch.setattr(worker_mod, "_CHECKPOINT_DIR", tmp_path)
+    with pytest.raises(FileNotFoundError):
+        worker_mod.resolve_checkpoint_path("does_not_exist.pt")
+
+
+def test_worker_load_checkpoint_delivers_event(tmp_path, monkeypatch):
+    """Load Checkpoint: full worker flow validates and reports metadata."""
+    pytest.importorskip("torch", reason="torch required for checkpoint load")
+    from gui import worker as worker_mod
+    from gui.state import GUIConfig
+    from gui.worker import TrainingWorker
+
+    p = _make_tiny_checkpoint(tmp_path)
+    monkeypatch.setattr(worker_mod, "_CHECKPOINT_DIR", tmp_path)
+
+    repo = Path(__file__).resolve().parent.parent
+    w = TrainingWorker(str(repo / "configs" / "smoke.yaml"), GUIConfig(),
+                       threading.Event())
+    w.start_load("test_ckpt.pt")
+    deadline = time.time() + 90.0
+    kinds = []
+    loaded = None
+    while time.time() < deadline:
+        try:
+            ev = w.q.get(timeout=0.5)
+            kinds.append(ev["kind"])
+            if ev["kind"] == "CHECKPOINT_LOADED":
+                loaded = ev["payload"]
+            if ev["kind"] == "TRAINING_FINISHED":
+                break
+        except Exception:
+            pass
+    assert loaded is not None, f"no CHECKPOINT_LOADED event; events: {kinds}"
+    assert loaded["name"] == "test_ckpt.pt"
+    assert loaded["iteration"] == 3
+    assert Path(loaded["path"]) == p.resolve()
+    assert loaded["params"]  # non-empty parameter count string
+    if w.thread:
+        w.thread.join(timeout=5.0)

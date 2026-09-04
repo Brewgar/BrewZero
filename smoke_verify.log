@@ -1,7 +1,0 @@
-[iter    1]    0.9s  games=4 plies=231  dS=-0.515 regret=+0.515  H=3.310  vtrain=0.196  kl=+0.1352  clip=0.39
-   eval vs random      : W-D-L 0-4-0  score=0.500  elo=-0  trunc=4
-   eval vs material    : W-D-L 0-3-1  score=0.375  elo=-89  trunc=3
-   eval vs stockfish_d1: W-D-L 0-4-0  score=0.500  elo=-0  trunc=3
-   eval vs stockfish_d4: W-D-L 0-1-3  score=0.125  elo=-338  trunc=1
-
-   Relative Elo: 1432 +/- 95  (games=16, score=0.375)

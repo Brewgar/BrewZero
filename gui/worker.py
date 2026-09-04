@@ -24,12 +24,34 @@ EV_METRIC = "METRIC"
 EV_ITERATION = "ITERATION_COMPLETE"
 EV_EVALUATION = "EVALUATION_COMPLETE"
 EV_CHECKPOINT = "CHECKPOINT_SAVED"
+EV_CHECKPOINT_LOADED = "CHECKPOINT_LOADED"
 EV_MESSAGE = "LOG_MESSAGE"
 EV_ERROR = "ERROR"
 EV_FINISHED = "TRAINING_FINISHED"
 EV_PLAY_READY = "PLAY_READY"
 
 _REPO = Path(__file__).resolve().parent.parent
+_CHECKPOINT_DIR = _REPO / "checkpoints"
+
+
+def resolve_checkpoint_path(name: str) -> str:
+    """Resolve a checkpoint selection to an existing file path.
+
+    The GUI combobox stores bare file names (e.g. ``smoke_latest.pt``) while
+    checkpoints live in ``<repo>/checkpoints/``.  Bare names are resolved
+    against that directory; existing absolute/relative paths pass through.
+    Raises ``FileNotFoundError`` for anything that does not exist.
+    """
+    p = Path(name)
+    if p.is_file():
+        return str(p.resolve())
+    candidate = _CHECKPOINT_DIR / name
+    if candidate.is_file():
+        return str(candidate.resolve())
+    raise FileNotFoundError(
+        f"checkpoint not found: '{name}' (looked in {p} and {_CHECKPOINT_DIR})"
+    )
+
 
 
 def _make_event(kind: str, **payload) -> dict:
@@ -99,11 +121,11 @@ class TrainingWorker:
         self.thread.start()
 
     def start_play(self, checkpoint_path: str, human_white: bool = True,
-                   temperature: float = 0.0):
+                   temperature: float = 0.0, mode: str = "gui"):
         def _run():
             try:
                 self._bootstrap()
-                self._do_play(checkpoint_path, human_white, temperature)
+                self._do_play(checkpoint_path, human_white, temperature, mode)
             except Exception as exc:
                 self._push(EV_ERROR, message=repr(exc), traceback=traceback.format_exc())
             finally:
@@ -115,6 +137,31 @@ class TrainingWorker:
 
         self.thread = threading.Thread(target=_run, daemon=True, name="gui-play")
         self.thread.start()
+
+    def start_load(self, checkpoint_path: str):
+        """Load and validate a checkpoint through the shared checkpoint API.
+
+        Loads the weights into a fresh Trainer (so a later Play/Evaluate in
+        the same session is guaranteed compatible), verifies the stored
+        configuration against the selected experiment config, and reports
+        the checkpoint metadata back to the GUI.
+        """
+        def _run():
+            try:
+                self._bootstrap()
+                self._do_load(checkpoint_path)
+            except Exception as exc:
+                self._push(EV_ERROR, message=repr(exc), traceback=traceback.format_exc())
+            finally:
+                try:
+                    if self.trainer is not None:
+                        self.trainer.close()
+                except Exception:
+                    pass
+
+        self.thread = threading.Thread(target=_run, daemon=True, name="gui-load")
+        self.thread.start()
+
 
     def request_stop(self):
         self.stop_event.set()
@@ -192,9 +239,10 @@ class TrainingWorker:
         self._push(EV_FINISHED, reason="completed")
 
     def _do_evaluate(self, checkpoint_path: str):
+        ckpt_file = resolve_checkpoint_path(checkpoint_path)
         self._push(EV_STATUS, state="Evaluating")
-        self._push(EV_MESSAGE, message=f"Evaluating checkpoint: {checkpoint_path}")
-        payload = load_checkpoint(checkpoint_path, map_location=self.trainer.device)
+        self._push(EV_MESSAGE, message=f"Evaluating checkpoint: {ckpt_file}")
+        payload = load_checkpoint(ckpt_file, map_location=self.trainer.device)
         from train.checkpoint import check_config_compatibility
         check_config_compatibility(payload, self.cfg)
         self.trainer.load_net_state(payload["model"])
@@ -206,20 +254,47 @@ class TrainingWorker:
         self._push(EV_STATUS, state="Idle")
         self._push(EV_FINISHED, reason="evaluated")
 
-    def _do_play(self, checkpoint_path, human_white=True, temperature=0.0):
+    def _do_play(self, checkpoint_path, human_white=True, temperature=0.0,
+                 mode: str = "gui"):
+        ckpt_file = resolve_checkpoint_path(checkpoint_path)
         self._push(EV_STATUS, state="Playing")
-        self._push(EV_MESSAGE, message=f"Play mode: {checkpoint_path}")
-        payload = load_checkpoint(checkpoint_path, map_location=self.trainer.device)
+        self._push(EV_MESSAGE, message=f"Play mode ({mode}): {ckpt_file}")
+        payload = load_checkpoint(ckpt_file, map_location=self.trainer.device)
         from train.checkpoint import check_config_compatibility
         check_config_compatibility(payload, self.cfg)
         self.trainer.load_net_state(payload["model"])
         self.trainer.net.eval()
         # Run an interactive game using the existing play pipeline.
         # Output goes to the GUI event log so no console is required.
-        from gui.play_game import PlayGameWindow
+        from gui.play_game import PlayBoardWindow, PlayTextWindow
         self._push(EV_PLAY_READY,
                    net=self.trainer.net, device=self.trainer.device,
-                   cfg=self.cfg, human_white=human_white, temperature=temperature)
+                   cfg=self.cfg, human_white=human_white,
+                   temperature=temperature,
+                   mode=("text" if str(mode).lower().startswith("text")
+                         else "gui"))
+
+    def _do_load(self, checkpoint_path: str):
+        """Load + validate a checkpoint and report its metadata to the GUI."""
+        ckpt_file = resolve_checkpoint_path(checkpoint_path)
+        self._push(EV_MESSAGE, message=f"Loading checkpoint: {ckpt_file}")
+        payload = load_checkpoint(ckpt_file, map_location=self.trainer.device)
+        from train.checkpoint import check_config_compatibility
+        check_config_compatibility(payload, self.cfg)
+        self.trainer.load_net_state(payload["model"])
+        self.trainer.net.eval()
+        iteration = int(payload.get("iteration", 0))
+        total_plies = int(payload.get("total_plies", 0))
+        params = count_params(self.trainer.net)
+        self._push(EV_CHECKPOINT_LOADED,
+                   name=Path(ckpt_file).name,
+                   path=ckpt_file,
+                   iteration=iteration,
+                   total_plies=total_plies,
+                   params=params,
+                   config=Path(self.config_path).name)
+        self._push(EV_STATUS, state="Idle")
+        self._push(EV_FINISHED, reason="loaded")
 
 
 def count_params(net) -> str:

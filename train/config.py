@@ -95,10 +95,17 @@ DEFAULTS: dict = {
         # truncation are independently configurable (audit H-4).
         "eval_max_plies": None,
         # When True, resume() may load a checkpoint whose lambda_game /
-        # lambda_stockfish differ from this config (assisted -> autonomous
-        # transition, lambda_SF -> 0).  The change is deliberate and visible;
-        # architecture keys remain strictly checked.
+        # lambda_stockfish differ from this config (deliberate operator-driven
+        # reward-schedule change).  Architecture keys remain strictly checked.
         "allow_reward_schedule_change": False,
+        # DISK POLICY: keep only ONE checkpoint file ({name}_latest.pt).
+        # Named per-iteration archive copies are OFF by default (they caused
+        # ~134 MB x N accumulation); enable only for short diagnostic runs.
+        "archive_checkpoints": False,
+        # Keep one previous-generation checkpoint ({name}_prev.pt) as a
+        # corruption fallback.  The atomic write (tmp -> validate -> replace)
+        # makes this nearly redundant, so it is OFF by default.
+        "keep_previous_checkpoint": False,
     },
 }
 

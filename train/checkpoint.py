@@ -78,19 +78,41 @@ def save_training_state(
     payload: dict,
     archive_every: int,
     iteration: int,
+    keep_previous: bool = False,
+    keep_archives: bool = False,
 ) -> None:
-    """Update latest/prev and periodically archive named iterations."""
+    """Save the current training state as the SINGLE latest checkpoint.
+
+    DISK POLICY (default): only ``{name}_latest.pt`` is kept.  Previous-
+    generation copies and named per-iteration archives are opt-in via
+    ``keep_previous`` / ``keep_archives``; when disabled, stale files from
+    older runs are actively deleted so the checkpoints directory cannot
+    accumulate gigabytes.
+
+    * ``latest``      -- always written (atomically).
+    * ``prev``        -- only when ``keep_previous``: the previous latest,
+                         copied before the new write (corruption fallback).
+    * ``{name}_iter{iteration:06d}.pt`` -- only when ``keep_archives`` and
+                         ``archive_every > 0`` and ``iteration % archive_every == 0``.
+    """
     ckpt_dir = Path(ckpt_dir)
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     latest = ckpt_dir / f"{name}_latest.pt"
     prev = ckpt_dir / f"{name}_prev.pt"
 
-    if latest.exists():
-        # Keep one previous valid checkpoint (Sec. 59).
+    if keep_previous and latest.exists():
         shutil.copy2(latest, prev)
     save_checkpoint_atomic(latest, payload)
-    if archive_every > 0 and iteration % archive_every == 0:
+
+    if keep_archives and archive_every > 0 and iteration % archive_every == 0:
         save_checkpoint_atomic(ckpt_dir / f"{name}_iter{iteration:06d}.pt", payload)
+
+    # Enforce the disk policy: remove stale files from older runs/configs.
+    if not keep_previous and prev.exists():
+        prev.unlink()
+    if not keep_archives:
+        for stale in ckpt_dir.glob(f"{name}_iter*.pt"):
+            stale.unlink()
 
 
 def find_latest_checkpoint(ckpt_dir: str | Path, name: str) -> Path | None:

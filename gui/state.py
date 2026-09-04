@@ -13,6 +13,7 @@ class State(Enum):
     STOPPING = "Stopping"
     EVALUATING = "Evaluating"
     PLAYING = "Playing"
+    LOADING = "Loading"
     ERROR = "Error"
 
 

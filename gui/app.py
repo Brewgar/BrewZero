@@ -183,6 +183,18 @@ class ChessRLApp:
         ttk.Entry(play_row, textvariable=self.play_temp, width=6).pack(side="left")
         play_row.pack(fill="x", **pad)
 
+        # play display mode: graphical board or plain text exchange
+        play_mode_row = ttk.Frame(ctrl)
+        ttk.Label(play_mode_row, text="Play display:").pack(side="left")
+        self.play_mode = tk.StringVar(value="Board (graphical)")
+        self.play_mode_combo = ttk.Combobox(
+            play_mode_row, state="readonly", width=20,
+            values=("Board (graphical)", "Text console"),
+            textvariable=self.play_mode,
+        )
+        self.play_mode_combo.pack(side="left", padx=(4, 0))
+        play_mode_row.pack(fill="x", **pad)
+
         self.eval_label = ttk.Label(ctrl, text="Evaluation: —")
         self.eval_label.pack(anchor="w", **pad)
 
@@ -370,11 +382,25 @@ class ChessRLApp:
         self._append_log(f"Evaluating checkpoint: {ck}")
 
     def _on_load(self):
+        """Load the selected checkpoint through the shared checkpoint API.
+
+        Runs in a worker thread: validates the file, checks stored-config
+        compatibility, loads the weights, and reports the metadata (iteration,
+        parameter count) back to the GUI via CHECKPOINT_LOADED.
+        """
+        if self.worker and self.worker.is_alive():
+            messagebox.showinfo("Busy", "A background job is running; wait for it to finish.")
+            return
         ck = self.checkpoint_combo.get()
         if not ck:
             messagebox.showwarning("No checkpoint", "Select a checkpoint first.")
             return
-        self._append_log(f"Checkpoint selected: {ck}")
+        self._set_state(State.LOADING)
+        self.stop_event = threading.Event()
+        self.worker = TrainingWorker(self._selected_config_path(), self, self.stop_event)
+        self.worker.start_load(ck)
+        self._update_button_states()
+        self._append_log(f"Loading checkpoint: {ck}")
 
     def _on_play(self):
         ck = self.checkpoint_combo.get()
@@ -387,19 +413,33 @@ class ChessRLApp:
         except ValueError:
             temp = 0.0
         human_white = self.play_color.get() == "White"
+        mode = ("text" if "text" in self.play_mode.get().lower()
+                else "gui")
         self._set_state(State.PLAYING)
         self.stop_event = threading.Event()
         self.worker = TrainingWorker(cfg_path, self, self.stop_event)
-        self.worker.start_play(ck, human_white=human_white, temperature=temp)
-        self._append_log(f"Play started (you are {'White' if human_white else 'Black'}, temp={temp}).")
+        self.worker.start_play(ck, human_white=human_white, temperature=temp,
+                               mode=mode)
+        self._append_log(
+            f"Play started (you are {'White' if human_white else 'Black'}, "
+            f"temp={temp}, display={'text' if mode == 'text' else 'board'})."
+        )
 
     def _update_button_states(self):
-        running = self.status.state in (State.TRAINING, State.STOPPING, State.EVALUATING, State.PLAYING)
+        running = self.status.state in (
+            State.TRAINING, State.STOPPING, State.EVALUATING,
+            State.PLAYING, State.LOADING,
+        )
         idle = self.status.state == State.IDLE
         self.btn_train.config(state="disabled" if running else "normal")
         self.btn_resume.config(state="disabled" if running else "normal")
-        self.btn_stop.config(state="normal" if running else "disabled")
+        self.btn_stop.config(
+            state="normal" if self.status.state in (State.TRAINING, State.STOPPING)
+            else "disabled"
+        )
         self.btn_eval.config(state="normal" if idle else "disabled")
+        self.btn_load.config(state="normal" if idle else "disabled")
+        self.btn_play.config(state="normal" if idle else "disabled")
 
     def _set_state(self, st):
         self.status.state = st
@@ -550,10 +590,23 @@ class ChessRLApp:
         elif kind == "EVALUATION_COMPLETE":
             self._apply_eval_results(payload.get("results", []),
                                      payload.get("rating"))
+        elif kind == "CHECKPOINT_LOADED":
+            name = payload.get("name", "?")
+            self.last_checkpoint = name
+            self.checkpoint_label.config(text=name)
+            it = payload.get("iteration", 0)
+            params = payload.get("params", "?")
+            self._append_log(
+                f"Checkpoint loaded: {name} (iteration {it}, {params} params, "
+                f"config {payload.get('config', '?')}) -- ready to Play/Evaluate."
+            )
         elif kind == "PLAY_READY":
             self._set_state(State.IDLE)
-            from gui.play_game import PlayGameWindow
-            PlayGameWindow(self.root, payload)
+            from gui.play_game import PlayBoardWindow, PlayTextWindow
+            if payload.get("mode") == "text":
+                PlayTextWindow(self.root, payload)
+            else:
+                PlayBoardWindow(self.root, payload)
         elif kind == "CHECKPOINT_SAVED":
             it = payload.get("iteration", "?")
             self._append_log(f"Checkpoint saved at iteration {it}")

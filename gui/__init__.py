@@ -3,6 +3,7 @@
 from gui.state import GUIConfig, State, TrainingStatus
 from gui.worker import (
     EV_CHECKPOINT,
+    EV_CHECKPOINT_LOADED,
     EV_ERROR,
     EV_EVALUATION,
     EV_FINISHED,
@@ -29,6 +30,7 @@ __all__ = [
     "EV_EVALUATION",
     "EV_PLAY_READY",
     "EV_CHECKPOINT",
+    "EV_CHECKPOINT_LOADED",
     "EV_MESSAGE",
     "EV_ERROR",
     "EV_FINISHED",
