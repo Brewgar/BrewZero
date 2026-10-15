@@ -2,11 +2,11 @@
 
 A chess AI that learns by playing with itself (pause), written entirely in Python.
 
-A neural network plays both sides of the board, loses to itself half the time, wins against itself the other half, and slowly figures out what it's doing. Stockfish 18 sits on the sidelines during training and gives feedback (WDL-based evaluation, expected score, and regret), so the model learns from how good its moves were and not only from who won in the end.
+A neural network plays both sides of the board, loses to itself half the time, wins against itself the other half, and slowly figures out what it's doing. Stockfish 18 sits on the sidelines during training and coaches it, so the model learns from how good its moves were and not only from who won in the end.
 
 ## Read this first
 
-This is a proof of concept and a fun little machine learning project. It is not trying to replace a real chess engine, and it will not beat one. Also, yes, the "Zero" in the name is very misleading. We're aware.
+This is a proof of concept and a fun little machine learning project. It is not trying to replace a real chess engine, and it will not beat one. Also, yes, the "Zero" in the name is very misleading. I'm aware.
 
 ## What's under the hood
 
