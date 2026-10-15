@@ -1,25 +1,55 @@
 # BrewZero
 
-## Purpose
+A chess AI that learns by playing with itself (pause), written entirely in Python.
 
-BrewZero is a self-play reinforcement-learning chess system that trains a neural network to play both sides of a chess game. During training, Stockfish 18 provides auxiliary feedback such as WDL-based evaluation, expected score, and regret, helping the model learn from the quality of its decisions in addition to the final game result. This project is made to be just a proof of concept. BrewZero doesn't claim or aim to become a replacement for a strong chess engine. Its rather just a fun little machine learning project. And yes, the Zero in the model's name is very misleading.
+A neural network plays both sides of the board, loses to itself half the time, wins against itself the other half, and slowly figures out what it's doing. Stockfish 18 sits on the sidelines during training and gives feedback (WDL-based evaluation, expected score, and regret), so the model learns from how good its moves were and not only from who won in the end.
 
-## Technologies
+## Read this first
 
-The project is built in entirely in Python and uses PyTorch for the neural network and GPU accelerated training, PPO and GAE for reinforcement learning, python-chess for well, chess. And Stockfish 18 for evaluation and feedback. The model uses a residual neural-network architecture with separate policy, game-value, training-value, and optional Stockfish-value components. Training, self-play, evaluation, checkpointing, and human play are connected through the same underlying APIs.
+This is a proof of concept and a fun little machine learning project. It is not trying to replace a real chess engine, and it will not beat one. Also, yes, the "Zero" in the name is very misleading. We're aware.
+
+## What's under the hood
+
+- **PyTorch** for the neural network and GPU training
+- **PPO + GAE** for the reinforcement learning
+- **python-chess** for, well, chess
+- **Stockfish 18** for evaluation and feedback
+
+The model is a residual network with separate heads for policy, game value, training value, and an optional Stockfish value. Self-play, training, evaluation, checkpointing, and human play all go through the same APIs.
 
 ## Installation
 
-BrewZero uses a Python vem and requires Python 3.14. After creating and running the environment, install the project dependencies via requirements.txt and install the CUDA-enabled PyTorch build with `pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132`. The Stockfish executable is configured separately rather than being included in the project. The environment can be checked with `python scripts/gate0_report.py`, and the complete test suite can be run with `pytest tests/ -q`. Everything you need should be included in the github repository, except for the Stockfish 18 Executable file. Download and drop it into /stockfish.
+You'll need Python 3.14 and a virtual environment.
 
-## Training and Evaluation
+1. Create and activate your venv.
+2. Install the dependencies: `pip install -r requirements.txt`
+3. Install the CUDA build of PyTorch: `pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132`
+4. Download the Stockfish 18 executable and drop it into the `stockfish/` folder. It isn't included in the repo.
 
-The project provides multiple training configurations to compare different learning approaches. The terminal only baseline can be started with `python main.py --config configs/terminal_only.yaml --hours 4`, while Stockfish-dense, combined, and auxiliary-value experiments use their corresponding YAML configurations. Training can be resumed with `--resume`, and checkpoints can be evaluated using `--eval-only --checkpoint ...`. Evaluation focuses on actual game performance using wins, draws, losses, score, and estimated Elo against fixed opponents rather than treating training statistics as proof of improvement.
+Check that your setup works with `python scripts/gate0_report.py`, then run the tests with `pytest tests/ -q`.
+
+## Training and evaluation
+
+There are several training configs so you can compare different ways of teaching the model. The terminal-only baseline looks like this:
+
+```
+python main.py --config configs/terminal_only.yaml --hours 4
+```
+
+The Stockfish-dense, combined, and auxiliary-value experiments each have their own YAML in `configs/`.
+
+Add `--resume` to continue a run. To evaluate a checkpoint, use `--eval-only --checkpoint ...`.
+
+Evaluation looks at real games against fixed opponents: wins, draws, losses, score, and estimated Elo. A training curve going up is not proof the model improved, so it isn't treated as proof here.
 
 ## GUI
 
-BrewZero includes a lightweight Tkinter gui that provides a simple interface for controlling and monitoring the entire system. The gui can be launched with `python gui.py` and provides training controls, checkpoint loading, evaluation, model statistics etc. The gui uses the same training and evaluation APIs as the commandline interface instead of implementing separate rl logic, allowing training, evaluation, and human play to remain consistent with the system.
+There's a lightweight Tkinter GUI for training controls, loading checkpoints, running evaluations, and viewing model stats. Launch it with `python gui.py`. It uses the same APIs as the command line, so it doesn't have its own secret RL logic.
 
-## Development and Testing
+## Tests
 
-More than 165 unit and integration tests cover the functionality, with additional GUI tests available through `pytest tests/test_gui.py -v`. A small smoke configuration is provided to verify the complete training pipeline before running longer experiments. Checkpoints and training logs are stored separately so that experiments can be resumed or evaluated later.
+More than 165 unit and integration tests cover the code. GUI tests run with `pytest tests/test_gui.py -v`. There's also a small smoke config for checking that the whole pipeline works before you commit to a long run and find out at hour three that it didn't.
+
+## License
+
+MIT.
